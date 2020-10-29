@@ -143,38 +143,10 @@ def check_intersect(p1, p2, q1, q2, node_coords):
 	else:
 		return(1)
 
-
-# def fix_connections(G):
-# 	G.remove_edge(11,7)
-# 	G.remove_edge(12,10)
-# 	G.remove_edge(14,6)
-# 	G.remove_edge(8,4)
-# 	G.add_edge(140,6)
-# 	G.add_edge(8,80)
-# 	G.add_edge(80,4)
-# 	node_coords = nx.get_node_attributes(G, 'pos')
-
-# 	G.add_node(150, pos=(node_coords[110][0], node_coords[7][1]))
-# 	G.add_node(160, pos=(node_coords[110][0], node_coords[10][1]))
-
-# 	G.remove_node(120)
-# 	G.remove_node(130)
-
-# 	G.add_edge(150,7)
-# 	G.add_edge(160,10)
-# 	G.add_edge(110,150)
-# 	G.add_edge(150,160)
-# 	G.add_edge(160,80)
-
-# 	return(G)
-
 def main():
 	G = nx.Graph()
-
 	G = make_graph(G)
 	
-	#print(G[1][5]["part_of"])
-
 	node_coords = nx.get_node_attributes(G, 'pos')
 
 	outer_boundary, hall_inner, inner_edge = remove_irrlevant_nodes(G, node_coords)
@@ -183,11 +155,8 @@ def main():
 		distance = math.sqrt((node_coords[edges[0]][0] - node_coords[edges[1]][0])**2 + (node_coords[edges[0]][1] - node_coords[edges[1]][1])**2)
 		G[edges[0]][edges[1]]['weight'] = distance
 
-	#print(G.edges)
 	weight = nx.get_edge_attributes(G, 'weight')
 	node_part = nx.get_node_attributes(G, 'boundary')
-	#print(weight)
-
 
 	outer_points = []
 	inner_points = []
@@ -203,9 +172,6 @@ def main():
 			outer_points.append(point)
 		else:
 			inner_points.append(point)
-
-	# print(inner_points)
-	# print(outer_points)
 
 	small_sp = 100
 	hallway_path = 0
@@ -299,11 +265,9 @@ def main():
 
 	node_coords = nx.get_node_attributes(G, 'pos')
 
-	print(up_flag, down_flag, left_flag, right_flag)
-
 	big_flag = [up_flag, down_flag, left_flag, right_flag]
-
 	if_flag = True
+
 	for i in range(0, len(hallway_path)-1):
 		for j in range(0, len(hallway_path_copy)-1):
 			p1 = [node_coords[hallway_path[i]][0], node_coords[hallway_path[i]][1]]
@@ -313,19 +277,21 @@ def main():
 			inter_flag = doIntersect(p1,q1,p2,q2)
 			if_flag = if_flag*inter_flag
 
-	print(if_flag)
 	if if_flag == 0:
 		G.nodes[hallway_path[0]*10]['pos'] = (G.nodes[hallway_path[0]]['pos'][0], G.nodes[hallway_path[0]]['pos'][1] - move)
 		G.nodes[hallway_path[-1]*10]['pos'] = (G.nodes[hallway_path[-1]]['pos'][0] + move, G.nodes[hallway_path[-1]]['pos'][1])
 		for i in range(1, len(hallway_path)-1):
-			G.nodes[hallway_path[i]*10]['pos'] = (G.nodes[hallway_path[i]]['pos'][0] + move, G.nodes[hallway_path[i]]['pos'][1] - move)
-			
+			G.nodes[hallway_path[i]*10]['pos'] = (G.nodes[hallway_path[i]]['pos'][0] + move, G.nodes[hallway_path[i]]['pos'][1] - move)		
 	G = fix_connections(G)
+
+	print(G.edges)
+	print(G.nodes)
+	print(node_coords)
 
 	nx.draw(G, nx.get_node_attributes(G, 'pos'), with_labels=True, node_size=100, font_size=6)
 
 	#nx.draw_networkx_edge_labels(G, nx.get_node_attributes(G, 'pos'), edge_labels=attrs, font_color='red')
-	plt.savefig('foo.png')
+	plt.savefig('floorplan.png')
 
 if __name__ == '__main__':
 	main()
