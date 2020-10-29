@@ -283,7 +283,7 @@ def main():
 		for i in range(1, len(hallway_path)-1):
 			G.nodes[hallway_path[i]*10]['pos'] = (G.nodes[hallway_path[i]]['pos'][0] + move, G.nodes[hallway_path[i]]['pos'][1] - move)		
 	G = fix_connections(G)
-
+	node_coords = nx.get_node_attributes(G, 'pos')
 	print(G.edges)
 	print(G.nodes)
 	print(node_coords)
