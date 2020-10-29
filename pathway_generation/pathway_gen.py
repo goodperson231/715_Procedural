@@ -2,7 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import math
 import random
-from utils import doIntersect, fix_connections
+from utils import doIntersect
 
 def get_max_len_list(big_list):
 	l = len(max(big_list, key=len))
@@ -12,6 +12,7 @@ def get_max_len_list(big_list):
 			small_list.append(ll)
 	return(small_list)
 
+# making a graph with all the nodes (room boundaries)
 def make_graph(G):
 	G.add_node(1,pos=(1,1), boundary="outer-boundary")
 	G.add_node(2,pos=(1,12), boundary="outer-boundary")
@@ -55,7 +56,33 @@ def make_graph(G):
 	(12,10): {"boundary": "inner-boundary", "part_of": "null"}}
 	nx.set_edge_attributes(G, attrs)
 	return(G)
+# need to fix this (node)
+# merge nodes and reconnect to neighbours
+def fix_connections(G):
+	G.remove_edge(11,7)
+	G.remove_edge(12,10)
+	G.remove_edge(14,6)
+	G.remove_edge(8,4)
+	G.add_edge(140,6)
+	G.add_edge(8,80)
+	G.add_edge(80,4)
+	node_coords = nx.get_node_attributes(G, 'pos')
 
+	G.add_node(150, pos=(node_coords[110][0], node_coords[7][1]))
+	G.add_node(160, pos=(node_coords[110][0], node_coords[10][1]))
+
+	G.remove_node(120)
+	G.remove_node(130)
+
+	G.add_edge(150,7)
+	G.add_edge(160,10)
+	G.add_edge(110,150)
+	G.add_edge(150,160)
+	G.add_edge(160,80)
+
+	return(G)
+
+#routine to remove outerboundary edges and living hall/navigable unit/main room inner edges
 def remove_irrlevant_nodes(G, node_coords):
 
 	outer_boundary = []
@@ -94,55 +121,6 @@ def get_min_max(O_points, node_coords):
 			y_min = node_coords[point][1]
 	return([x_min, x_max, y_min, y_max])
 
-
-def check_intersect(p1, p2, q1, q2, node_coords):
-
-	X1 = node_coords[p1][0]
-	X2 = node_coords[p2][0] 
-	Y1 = node_coords[p1][1]
-	Y2 = node_coords[p2][1]
-	X3 = node_coords[q1][0]
-	X4 = node_coords[q2][0]
-	Y3 = node_coords[q1][1]
-	Y4 = node_coords[q2][1]
-
-	if X1 - X2 == 0:
-		A1 = float("inf")
-	else:
-		A1 = (Y1-Y2)/(X1-X2)  
-
-	if X3 - X4 == 0:
-		A2 = float("inf")
-	else:
-		A2 = (Y3-Y4)/(X3-X4)  
-
-	if (max(X1,X2) < min(X3,X4)):
-		return(0)
-
-	if min(X1,X2) > max(X3,X4): 
-		return(0)
-	if max(Y1,Y2) > min(Y3,Y4): 
-		return(0)
-	if min(Y1,Y2) > max(Y3,Y4): 
-		return(0)
-
-	b1 = Y1 - A1*X1 
-	b2 = Y3 - A2*X3 
-
-	if A1 == A2:
-		return(0)
-	
-	Xa = (b2 - b1) / (A1 - A2)
-
-	Ya = A1 * Xa + b1
-
-	if ((Xa < max( min(X1,X2), min(X3,X4) )) or (Xa > min(max(X1,X2), max(X3,X4)))):
-		return(0)  # intersection is out of bound
-	elif ((Ya < max( min(Y1,Y2), min(Y3,Y4) )) or (Ya > min(max(Y1,Y2), max(Y3,Y4)))):
-		return(0)
-	else:
-		return(1)
-
 def main():
 	G = nx.Graph()
 	G = make_graph(G)
@@ -177,13 +155,20 @@ def main():
 	hallway_path = 0
 	big_list = []
 
+	# get list of pathways that touch max number of nodes
+	# need to handle case where inner edges maybe disconnected from each other (parallel room case, eg: attached bathroom)
+	# ie; rooms that are not attached to the main hallway spine
+	# for this, we find the largest connected graph and ignore the disconnected edges
+	# and then continue normal process from the largest connected component
 	for pt_1 in outer_points:
 		for pt_2 in inner_points:
+			# find the shortest path using the weight of the edge: length of the edge
 			sp = nx.shortest_path(G, source=pt_2, target=pt_1, weight='weight')
 			big_list.append(sp)
 
 	small_list = get_max_len_list(big_list)
 
+	# shortest path
 	for sl in small_list:
 		lp = nx.shortest_path_length(G, source=sl[0],  target=sl[-1], weight='weight')
 		if lp < small_sp:
@@ -200,24 +185,26 @@ def main():
 
 	hallway_path_copy = [x * 10 for x in hallway_path]
 
+	#add duplicate nodes
 	for point in hallway_path:
 		G.add_node(point*10, pos=node_coords[point], boundary=node_part[point])
 
-
+	#add duplicate pathway/connect the duplicate nodes
 	for i in range(0, len(hallway_path) - 1):
 		G.add_edge(hallway_path[i]*10, hallway_path[i+1]*10, boundary="inner-boundary", part_of="null")
-
-	# for point in hallway_path:
 
 	O_points = [k for k,v in node_part.items() if v == "outer-boundary"]
 
 	mm_coords = get_min_max(O_points, node_coords)
+
+	#deciding which direction to move the duplicate pathway
 
 	up_flag = 0
 	down_flag = 0
 	left_flag = 0
 	right_flag = 0
 
+	# checking for out of bound case
 	if node_coords[hallway_path[-1]][1] == mm_coords[3]:
 		up_flag = 1
 	elif node_coords[hallway_path[-1]][1] == mm_coords[2]:
@@ -268,6 +255,9 @@ def main():
 	big_flag = [up_flag, down_flag, left_flag, right_flag]
 	if_flag = True
 
+
+	# check for intersection, if yes revert to original position
+	# and move in opposite direction
 	for i in range(0, len(hallway_path)-1):
 		for j in range(0, len(hallway_path_copy)-1):
 			p1 = [node_coords[hallway_path[i]][0], node_coords[hallway_path[i]][1]]
@@ -277,6 +267,7 @@ def main():
 			inter_flag = doIntersect(p1,q1,p2,q2)
 			if_flag = if_flag*inter_flag
 
+	#intersection case, revert and move in reverse direction
 	if if_flag == 0:
 		G.nodes[hallway_path[0]*10]['pos'] = (G.nodes[hallway_path[0]]['pos'][0], G.nodes[hallway_path[0]]['pos'][1] - move)
 		G.nodes[hallway_path[-1]*10]['pos'] = (G.nodes[hallway_path[-1]]['pos'][0] + move, G.nodes[hallway_path[-1]]['pos'][1])
