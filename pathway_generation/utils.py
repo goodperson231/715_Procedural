@@ -1,4 +1,5 @@
-# to check if two line segments intersect
+# Check if two line segments intersect
+# code from https://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
 def onSegment(p, q, r): 
 	if ( (q[0] <= max(p[0], r[0])) and (q[0] >= min(p[0], r[0])) and
 		(q[1] <= max(p[1], r[1])) and (q[1] >= min(p[1], r[1]))): 
